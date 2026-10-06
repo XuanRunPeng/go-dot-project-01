@@ -1,0 +1,83 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://Project/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://Project/Player.gd" id="2_player"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(40, 0.2, 40)
+
+[sub_resource type="BoxShape3D" id="BoxShape_floor"]
+size = Vector3(40, 0.2, 40)
+
+[sub_resource type="CapsuleMesh" id="Capsule_player"]
+radius = 0.55
+height = 1.4
+
+[sub_resource type="SphereMesh" id="Sphere_player"]
+radius = 0.65
+height = 1.3
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape_player"]
+radius = 0.55
+height = 1.4
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.12, 0.16, 0.13, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
+albedo_color = Color(0.2, 0.58, 0.86, 1)
+roughness = 0.55
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -25, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("FloorMaterial")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape_floor")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+position = Vector3(0, 0.8, 0)
+script = ExtResource("2_player")
+
+[node name="Mesh" type="MeshInstance3D" parent="Player"]
+mesh = SubResource("Sphere_player")
+material_override = SubResource("PlayerMaterial")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("CapsuleShape_player")
+
+[node name="Facing" type="Node3D" parent="Player"]
+
+[node name="Direction" type="MeshInstance3D" parent="Player/Facing"]
+position = Vector3(0, 0.35, 0.75)
+scale = Vector3(0.12, 0.12, 0.35)
+mesh = SubResource("Sphere_player")
+material_override = SubResource("PlayerMaterial")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+position = Vector3(0, 16, 9.24)
+rotation_degrees = Vector3(-60, 0, 0)
+fov = 50.0
+current = true
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Help" type="Label" parent="UI"]
+offset_left = 24.0
+offset_top = 20.0
+theme_override_colors/font_color = Color(0.9, 0.94, 0.9, 1)
+theme_override_font_sizes/font_size = 18
+text = "WASD 移动  |  鼠标瞄准  |  左摇杆移动  |  右摇杆瞄准"
