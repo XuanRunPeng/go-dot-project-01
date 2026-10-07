@@ -32,6 +32,10 @@ roughness = 0.55
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
 
+[node name="MapGeometry" type="Node3D" parent="."]
+
+[node name="MapLabels" type="Node3D" parent="."]
+
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
@@ -49,7 +53,7 @@ material_override = SubResource("FloorMaterial")
 shape = SubResource("BoxShape_floor")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 0.8, 0)
+position = Vector3(0, 0.8, 17)
 script = ExtResource("2_player")
 
 [node name="Mesh" type="MeshInstance3D" parent="Player"]
@@ -81,3 +85,45 @@ offset_top = 20.0
 theme_override_colors/font_color = Color(0.9, 0.94, 0.9, 1)
 theme_override_font_sizes/font_size = 18
 text = "WASD 移动  |  鼠标瞄准  |  左摇杆移动  |  右摇杆瞄准"
+
+[node name="PausePanel" type="PanelContainer" parent="UI"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = -170.0
+offset_right = 190.0
+offset_bottom = 170.0
+
+[node name="PauseBox" type="VBoxContainer" parent="UI/PausePanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="UI/PausePanel/PauseBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "游戏暂停"
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="UI/PausePanel/PauseBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "继续游戏"
+
+[node name="SaveButton" type="Button" parent="UI/PausePanel/PauseBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "保存并退出"
+
+[node name="MenuButton" type="Button" parent="UI/PausePanel/PauseBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "返回主菜单"
+
+[connection signal="pressed" from="UI/PausePanel/PauseBox/ContinueButton" to="." method="_on_continue_pressed"]
+[connection signal="pressed" from="UI/PausePanel/PauseBox/SaveButton" to="." method="_on_save_and_exit_pressed"]
+[connection signal="pressed" from="UI/PausePanel/PauseBox/MenuButton" to="." method="_on_menu_pressed"]
