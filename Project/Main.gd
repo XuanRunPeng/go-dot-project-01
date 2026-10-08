@@ -5,22 +5,334 @@ const SIDE_ROAD_MATERIAL := Color(0.22, 0.19, 0.14, 1)
 const STATION_MATERIAL := Color(0.72, 0.3, 0.18, 1)
 const SHELTER_MATERIAL := Color(0.22, 0.5, 0.38, 1)
 const HOUSE_MATERIAL := Color(0.38, 0.3, 0.22, 1)
-const SAVE_PATH := "user://game_save.dat"
 const SETTINGS_PATH := "user://settings.cfg"
+const ITEMS_PATH := "res://Project/items.json"
+const INVENTORY_ITEM_SCRIPT := preload("res://Project/InventoryItem.gd")
+const BLUEPRINT_BOARD_SCRIPT := preload("res://Project/BlueprintBoard.gd")
+const INTERACTABLE_ITEM_SCRIPT := preload("res://Project/InteractableItem.gd")
+const BATTERY_DROP_SCRIPT := preload("res://Project/BatteryDrop.gd")
 
 @onready var player: CharacterBody3D = $Player
 @onready var pause_panel: PanelContainer = $UI/PausePanel
+@onready var countdown_label: Label = $UI/HUD/TopBar/Countdown
+@onready var objective_label: Label = $UI/HUD/Objective
+@onready var map_text: Label = $UI/HUD/MapPanel/Text
+@onready var status_message: Label = $UI/HUD/StatusMessage
+@onready var interact_prompt: Label = $UI/HUD/InteractPrompt
+@onready var mobile_controls: Control = $UI/HUD/MobileControls
+@onready var flashlight_light: SpotLight3D = $Player/Facing/Flashlight
+@onready var flashlight_charge_label: Label = $UI/HUD/FlashlightCharge
+var elapsed_time := 0.0
+var nearby_item: Area3D
+var flashlight_on := false
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_build_map()
-	_load_game()
+	_spawn_tutorial_items()
+	_load_game_state()
 	_apply_volume()
+	_build_inventory_panel()
+	_update_objective_ui()
+	flashlight_on = GameState.flashlight_on
+	_update_flashlight()
+	_layout_hud()
+	_play_scene_fade_in()
 	pause_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_viewport().size_changed.connect(_layout_hud)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_toggle_pause()
+	if event is InputEventScreenTouch:
+		mobile_controls.visible = event.pressed
+
+func _process(delta: float) -> void:
+	if get_tree().paused:
+		return
+	elapsed_time += delta
+	GameState.elapsed_time = elapsed_time
+	countdown_label.text = _format_time(elapsed_time)
+	_update_objective_ui()
+	_update_nearby_item()
+	if Input.is_action_just_pressed("interact"):
+		_try_pickup_item()
+	if Input.is_action_just_pressed("flashlight"):
+		_toggle_flashlight()
+	if Input.is_action_just_pressed("map"):
+		_on_map_pressed()
+
+func _layout_hud() -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var scale_factor := minf(viewport_size.x / 1600.0, viewport_size.y / 900.0)
+	$UI/HUD.scale = Vector2.ONE * scale_factor
+	$UI/HUD.position = (viewport_size - Vector2(1600.0, 900.0) * scale_factor) * 0.5
+
+func _play_scene_fade_in() -> void:
+	var fade := $UI/FadeOverlay
+	fade.modulate.a = 1.0
+	var tween := create_tween()
+	tween.tween_property(fade, "modulate:a", 0.0, 1.2)
+
+func _format_time(seconds: float) -> String:
+	var minutes := int(seconds) / 60
+	var remainder := int(seconds) % 60
+	return "%02d:%02d" % [minutes, remainder]
+
+func _on_map_pressed() -> void:
+	if not GameState.key_items.get("map", false):
+		status_message.text = "尚未找到地图"
+		return
+	$UI/HUD/MapPanel.visible = not $UI/HUD/MapPanel.visible
+	_update_objective_ui()
+
+func _on_phone_pressed() -> void:
+	_toggle_flashlight()
+
+func _toggle_flashlight() -> void:
+	flashlight_on = not flashlight_on
+	GameState.flashlight_on = flashlight_on
+	_update_flashlight()
+	_save_game()
+
+func _update_flashlight() -> void:
+	flashlight_light.visible = flashlight_on and GameState.flashlight_charge > 0.0
+	flashlight_light.light_energy = 5.0 if flashlight_light.visible else 0.0
+	flashlight_charge_label.text = "手电电量：%d" % int(maxf(GameState.flashlight_charge, 0.0))
+
+func _on_battery_dropped() -> void:
+	if not GameState.has_item("battery"):
+		status_message.text = "没有可用电池"
+		return
+	GameState.inventory["battery"] -= 1
+	GameState.flashlight_charge += 50.0
+	status_message.text = "电池已装入手电，电量 +50"
+	_update_flashlight()
+	_save_game()
+
+func _on_backpack_pressed() -> void:
+	$UI/HUD/BackpackPanel.visible = not $UI/HUD/BackpackPanel.visible
+	$UI/HUD/BackpackOverlay.visible = $UI/HUD/BackpackPanel.visible
+	if $UI/HUD/BackpackPanel.visible:
+		$UI/HUD/BackpackPanel/InventoryRoot/InventoryBody/ItemList/Items.grab_focus()
+
+func _build_inventory_panel() -> void:
+	var panel := $UI/HUD/BackpackPanel
+	for child in panel.get_children():
+		child.queue_free()
+	var root := VBoxContainer.new()
+	root.name = "InventoryRoot"
+	root.add_theme_constant_override("separation", 8)
+	panel.add_child(root)
+	var header := HBoxContainer.new()
+	root.add_child(header)
+	var close := Button.new()
+	close.text = "X"
+	close.pressed.connect(func(): _close_backpack())
+	header.add_child(close)
+	var title := Label.new()
+	title.text = "背包 - 道具 / 素材"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.add_child(title)
+	var build_button := Button.new()
+	build_button.text = "打开建造栏"
+	build_button.pressed.connect(func(): _toggle_blueprint_mode(build_button))
+	header.add_child(build_button)
+	var body := HBoxContainer.new()
+	body.name = "InventoryBody"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(body)
+	var item_list := VBoxContainer.new()
+	item_list.name = "ItemList"
+	item_list.custom_minimum_size = Vector2(245, 0)
+	body.add_child(item_list)
+	var tabs := HBoxContainer.new()
+	item_list.add_child(tabs)
+	for category in ["全部", "道具", "素材", "图纸", "关键道具"]:
+		var tab := Button.new()
+		tab.text = category
+		tab.pressed.connect(_filter_inventory.bind(category))
+		tabs.add_child(tab)
+	var items_grid := GridContainer.new()
+	items_grid.name = "Items"
+	items_grid.columns = 3
+	items_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	item_list.add_child(items_grid)
+	var details := VBoxContainer.new()
+	details.custom_minimum_size = Vector2(260, 0)
+	body.add_child(details)
+	var selected := Label.new()
+	selected.name = "SelectedItem"
+	selected.text = "选择道具查看信息"
+	selected.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	selected.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	details.add_child(selected)
+	var blueprint := PanelContainer.new()
+	blueprint.name = "BlueprintBoard"
+	blueprint.custom_minimum_size = Vector2(340, 0)
+	blueprint.set_script(BLUEPRINT_BOARD_SCRIPT)
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	blueprint.add_child(margin)
+	var content := VBoxContainer.new()
+	content.name = "Content"
+	margin.add_child(content)
+	var blueprint_title := Label.new()
+	blueprint_title.text = "图纸（将道具拖入此处）"
+	blueprint_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(blueprint_title)
+	var slots := GridContainer.new()
+	slots.name = "Slots"
+	slots.columns = 2
+	slots.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(slots)
+	var blueprint_status := Label.new()
+	blueprint_status.name = "Status"
+	blueprint_status.text = "将道具拖入图纸区域"
+	blueprint_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(blueprint_status)
+	var clear := Button.new()
+	clear.text = "清空图纸"
+	clear.pressed.connect(blueprint.clear_slots)
+	content.add_child(clear)
+	body.add_child(blueprint)
+	blueprint.visible = false
+	var battery_drop := PanelContainer.new()
+	battery_drop.name = "BatteryDrop"
+	battery_drop.custom_minimum_size = Vector2(220, 70)
+	battery_drop.set_script(BATTERY_DROP_SCRIPT)
+	var battery_label := Label.new()
+	battery_label.text = "将电池拖到这里\n手电电量 +50"
+	battery_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	battery_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	battery_drop.add_child(battery_label)
+	battery_drop.battery_dropped.connect(_on_battery_dropped)
+	root.add_child(battery_drop)
+	_load_inventory_items(items_grid, selected)
+
+func _close_backpack() -> void:
+	$UI/HUD/BackpackPanel.visible = false
+	$UI/HUD/BackpackOverlay.visible = false
+
+func _toggle_blueprint_mode(button: Button) -> void:
+	var blueprint: Control = $UI/HUD/BackpackPanel/InventoryRoot/InventoryBody/BlueprintBoard
+	blueprint.visible = not blueprint.visible
+	button.text = "关闭建造栏" if blueprint.visible else "打开建造栏"
+
+func _load_inventory_items(items_grid: GridContainer, selected: Label) -> void:
+	var file := FileAccess.open(ITEMS_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var data = JSON.parse_string(file.get_as_text())
+	if data is not Array:
+		return
+	for item in data:
+		var button := INVENTORY_ITEM_SCRIPT.new()
+		button.custom_minimum_size = Vector2(76, 72)
+		item.stack = int(GameState.inventory.get(item.id, 0))
+		button.setup(item, load("res://icon.svg"))
+		button.pressed.connect(_select_inventory_item.bind(item, selected))
+		items_grid.add_child(button)
+
+func _select_inventory_item(item: Dictionary, selected: Label) -> void:
+	selected.text = "%s\n\n类型：%s\n数量：%s\n\n可拖入右侧图纸区域作为制作材料。" % [item.name, item.type, item.stack]
+
+func _filter_inventory(category: String) -> void:
+	$UI/HUD/StatusMessage.text = "当前分类：" + category
+
+func _spawn_tutorial_items() -> void:
+	_spawn_item("baseball_bat", "棒球棍", Vector3(-2.0, 0.65, 15.0))
+	_spawn_item("crowbar", "撬棍", Vector3(2.0, 0.65, 15.0))
+	_spawn_item("battery", "电池", Vector3(4.0, 0.65, 16.0))
+	_spawn_item("map", "地图", Vector3(6.0, 0.65, 16.0))
+
+func _spawn_item(item_id: String, item_name: String, position: Vector3) -> void:
+	if GameState.collected_items.get(item_id, false):
+		return
+	var item: Area3D = INTERACTABLE_ITEM_SCRIPT.new()
+	item.setup(item_id, item_name)
+	item.position = position
+	item.collision_layer = 2
+	item.collision_mask = 0
+	var collision := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 1.2
+	collision.shape = shape
+	item.add_child(collision)
+	var mesh := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.35
+	sphere.height = 0.7
+	mesh.mesh = sphere
+	mesh.material_override = _material(Color(0.9, 0.75, 0.18, 1))
+	item.add_child(mesh)
+	var label := Label3D.new()
+	label.text = item_name
+	label.position = Vector3(0, 0.7, 0)
+	label.font_size = 22
+	label.outline_size = 5
+	item.add_child(label)
+	$MapGeometry.add_child(item)
+
+func _update_nearby_item() -> void:
+	nearby_item = null
+	var closest_distance := 2.3
+	for item in get_tree().get_nodes_in_group("interactable_items"):
+		if not is_instance_valid(item):
+			continue
+		var distance := player.global_position.distance_to(item.global_position)
+		if distance < closest_distance:
+			closest_distance = distance
+			nearby_item = item
+	if nearby_item:
+		status_message.text = "按 E 拾取：" + nearby_item.item_name
+		interact_prompt.text = "E  交互\n" + nearby_item.item_name
+		interact_prompt.visible = true
+	else:
+		status_message.text = ""
+		interact_prompt.visible = false
+
+func _try_pickup_item() -> void:
+	if nearby_item == null or not is_instance_valid(nearby_item):
+		status_message.text = "附近没有可拾取道具"
+		return
+	var item_name: String = nearby_item.item_name
+	if nearby_item.pickup():
+		status_message.text = "已拾取：" + item_name
+		_save_game()
+
+func _update_objective_ui() -> void:
+	var objective := _get_objective()
+	objective_label.text = "当前目标：" + objective.title + "\n" + objective.description
+	map_text.text = "区域地图\n\n" + objective.map_text
+
+func _get_objective() -> Dictionary:
+	match GameState.task:
+		GameState.Task.WAKE_UP:
+			return {"title": "醒来", "description": "查看屋内并寻找基础武器", "map_text": "庇护所（当前位置）\n→ 搜索屋内武器\n基站 1（未解锁）\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.PICKUP_WEAPON:
+			return {"title": "获取基础武器", "description": "找到棒球棍或撬棍并拾取", "map_text": "庇护所（当前区域）\n→ 屋内：基础武器\n基站 1（未解锁）\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.EQUIP_WEAPON:
+			return {"title": "装备武器", "description": "打开背包并装备刚刚获得的武器", "map_text": "庇护所（当前区域）\n→ 打开背包并装备武器\n基站 1（未解锁）\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.DEFEAT_FIRST_ENEMY:
+			return {"title": "清除门外威胁", "description": "击败门外出现的敌人", "map_text": "庇护所门外（敌人）\n→ 击败敌人\n基站 1（未解锁）\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.GET_FLASHLIGHT:
+			return {"title": "准备探索", "description": "找到手电图纸和电池，制作手电", "map_text": "庇护所（安全区域）\n→ 获取手电和电池\n基站 1（待探索）\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.REACH_FIRST_STATION:
+			return {"title": "寻找第一基站", "description": "沿主路线前往第一基站", "map_text": "庇护所\n→ 主路线\n第一基站（目标）\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.REPAIR_FIRST_STATION:
+			return {"title": "修复第一基站", "description": "收集材料并修复基站道路或入口", "map_text": "第一基站（损坏）\n→ 木头、金属零件、绳子\n基站 2（未解锁）\n基站 3（未解锁）"}
+		GameState.Task.GET_STATION_INTEL:
+			return {"title": "获取基站情报", "description": "查看第一基站的情报并准备下一段探索", "map_text": "第一基站（已激活）\n→ 获取情报\n基站 2（新区域）\n基站 3（未解锁）"}
+		_:
+			return {"title": "开始生存", "description": "探索区域、搜索资源并推进主线", "map_text": "庇护所\n第一基站（已激活）\n第二基站（可探索）\n第三基站\n研究所（最终区域）"}
+
+func _on_interact_pressed() -> void:
+	_try_pickup_item()
+
+func _on_sprint_pressed() -> void:
+	$UI/HUD/StatusMessage.text = "奔跑功能已准备"
 
 func _toggle_pause() -> void:
 	var paused := not get_tree().paused
@@ -42,22 +354,13 @@ func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://Project/Menu.tscn")
 
 func _save_game() -> void:
-	var save_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if save_file:
-		save_file.store_string(JSON.stringify({"player_position": [player.global_position.x, player.global_position.y, player.global_position.z]}))
+	GameState.player_position = player.global_position
+	GameState.save_game()
 
-func _load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-	var save_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if save_file == null:
-		return
-	var raw_data := save_file.get_as_text()
-	if not raw_data.strip_edges().begins_with("{"):
-		return
-	var data = JSON.parse_string(raw_data)
-	if data is Dictionary and data.has("player_position") and data.player_position.size() == 3:
-		player.global_position = Vector3(data.player_position[0], data.player_position[1], data.player_position[2])
+func _load_game_state() -> void:
+	if GameState.load_game():
+		player.global_position = GameState.player_position
+		elapsed_time = GameState.elapsed_time
 
 func _apply_volume() -> void:
 	var config := ConfigFile.new()

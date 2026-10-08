@@ -71,6 +71,16 @@ scale = Vector3(0.12, 0.12, 0.35)
 mesh = SubResource("Sphere_player")
 material_override = SubResource("PlayerMaterial")
 
+[node name="Flashlight" type="SpotLight3D" parent="Player/Facing"]
+position = Vector3(0, 1.3, 0.5)
+rotation_degrees = Vector3(-35, 180, 0)
+spot_range = 18.0
+spot_angle = 38.0
+spot_angle_attenuation = 1.5
+light_color = Color(1, 0.92, 0.7, 1)
+shadow_enabled = true
+visible = false
+
 [node name="Camera3D" type="Camera3D" parent="Player"]
 position = Vector3(0, 16, 9.24)
 rotation_degrees = Vector3(-60, 0, 0)
@@ -78,6 +88,272 @@ fov = 50.0
 current = true
 
 [node name="UI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 0
+offset_right = 1600.0
+offset_bottom = 900.0
+mouse_filter = 1
+
+[node name="TopBar" type="Control" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 128.0
+grow_horizontal = 2
+
+[node name="Health" type="ProgressBar" parent="UI/HUD/TopBar"]
+offset_left = 32.0
+offset_top = 24.0
+offset_right = 300.0
+offset_bottom = 51.0
+value = 100.0
+show_percentage = false
+
+[node name="HealthText" type="Label" parent="UI/HUD/TopBar/Health"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "生命值"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Stamina" type="ProgressBar" parent="UI/HUD/TopBar"]
+offset_left = 32.0
+offset_top = 58.0
+offset_right = 300.0
+offset_bottom = 85.0
+value = 100.0
+show_percentage = false
+
+[node name="StaminaText" type="Label" parent="UI/HUD/TopBar/Stamina"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "体力条"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Buff" type="Label" parent="UI/HUD/TopBar"]
+offset_left = 32.0
+offset_top = 91.0
+offset_right = 260.0
+offset_bottom = 119.0
+text = "Buff栏"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Countdown" type="Label" parent="UI/HUD/TopBar"]
+offset_left = 690.0
+offset_top = 24.0
+offset_right = 910.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 24
+text = "00:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MapButton" type="Button" parent="UI/HUD"]
+offset_left = 1410.0
+offset_top = 24.0
+offset_right = 1568.0
+offset_bottom = 182.0
+theme_override_font_sizes/font_size = 24
+text = "地图"
+tooltip_text = "拾取地图后可用，快捷键 M"
+
+[node name="PhoneButton" type="Button" parent="UI/HUD"]
+offset_left = 28.0
+offset_top = 350.0
+offset_right = 94.0
+offset_bottom = 520.0
+theme_override_font_sizes/font_size = 18
+text = "手\n电\n开\n关"
+
+[node name="FlashlightCharge" type="Label" parent="UI/HUD"]
+offset_left = 28.0
+offset_top = 525.0
+offset_right = 150.0
+offset_bottom = 555.0
+text = "手电电量：0"
+
+[node name="BackpackButton" type="Button" parent="UI/HUD"]
+offset_left = 1542.0
+offset_top = 360.0
+offset_right = 1600.0
+offset_bottom = 520.0
+theme_override_font_sizes/font_size = 18
+text = "背\n包"
+
+[node name="Hotbar" type="HBoxContainer" parent="UI/HUD"]
+offset_left = 470.0
+offset_top = 760.0
+offset_right = 1130.0
+offset_bottom = 850.0
+theme_override_constants/separation = 2
+
+[node name="Slot1" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "1"
+[node name="Slot2" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "2"
+[node name="Slot3" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "3"
+[node name="Quick" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "快捷道具"
+[node name="Tool" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "工具栏"
+[node name="Slot6" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "6"
+[node name="Slot7" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "7"
+[node name="Slot8" type="Button" parent="UI/HUD/Hotbar"]
+custom_minimum_size = Vector2(80, 90)
+layout_mode = 2
+text = "8"
+
+[node name="SprintButton" type="Button" parent="UI/HUD"]
+offset_left = 1300.0
+offset_top = 700.0
+offset_right = 1450.0
+offset_bottom = 850.0
+theme_override_font_sizes/font_size = 18
+text = "奔跑键"
+
+[node name="StatusMessage" type="Label" parent="UI/HUD"]
+offset_left = 620.0
+offset_top = 130.0
+offset_right = 980.0
+offset_bottom = 165.0
+horizontal_alignment = 1
+
+[node name="InteractPrompt" type="Label" parent="UI/HUD"]
+visible = false
+offset_left = 1160.0
+offset_top = 470.0
+offset_right = 1510.0
+offset_bottom = 520.0
+theme_override_colors/font_color = Color(1, 0.92, 0.5, 1)
+theme_override_font_sizes/font_size = 24
+text = "E 交互"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MobileControls" type="Control" parent="UI/HUD"]
+visible = false
+offset_left = 70.0
+offset_top = 680.0
+offset_right = 250.0
+offset_bottom = 860.0
+mouse_filter = 2
+
+[node name="JoystickHint" type="Label" parent="UI/HUD/MobileControls"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 0.7)
+theme_override_font_sizes/font_size = 22
+text = "摇杆"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Objective" type="Label" parent="UI/HUD"]
+offset_left = 560.0
+offset_top = 170.0
+offset_right = 1040.0
+offset_bottom = 230.0
+theme_override_colors/font_color = Color(0.9, 0.92, 0.78, 1)
+horizontal_alignment = 1
+
+[node name="MapPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -430.0
+offset_top = -300.0
+offset_right = 430.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Text" type="Label" parent="UI/HUD/MapPanel"]
+layout_mode = 2
+text = "区域地图\n\n庇护所  ·  基站1  ·  基站2  ·  基站3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PhonePanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+offset_left = 105.0
+offset_top = 350.0
+offset_right = 390.0
+offset_bottom = 535.0
+
+[node name="Text" type="Label" parent="UI/HUD/PhonePanel"]
+layout_mode = 2
+text = "手电筒\n当前状态：关闭"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BackpackPanel" type="PanelContainer" parent="UI/HUD"]
+visible = false
+z_index = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -700.0
+offset_top = -500.0
+offset_right = 700.0
+offset_bottom = 500.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackpackOverlay" type="ColorRect" parent="UI/HUD"]
+visible = false
+z_index = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.01, 0.015, 0.01, 0.72)
+mouse_filter = 1
+
+[node name="Text" type="Label" parent="UI/HUD/BackpackPanel"]
+layout_mode = 2
+text = "背包\n\n空"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Help" type="Label" parent="UI"]
 offset_left = 24.0
@@ -98,6 +374,17 @@ offset_left = -190.0
 offset_top = -170.0
 offset_right = 190.0
 offset_bottom = 170.0
+
+[node name="FadeOverlay" type="ColorRect" parent="UI"]
+z_index = 100
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+mouse_filter = 2
 
 [node name="PauseBox" type="VBoxContainer" parent="UI/PausePanel"]
 layout_mode = 2
@@ -127,3 +414,7 @@ text = "返回主菜单"
 [connection signal="pressed" from="UI/PausePanel/PauseBox/ContinueButton" to="." method="_on_continue_pressed"]
 [connection signal="pressed" from="UI/PausePanel/PauseBox/SaveButton" to="." method="_on_save_and_exit_pressed"]
 [connection signal="pressed" from="UI/PausePanel/PauseBox/MenuButton" to="." method="_on_menu_pressed"]
+[connection signal="pressed" from="UI/HUD/MapButton" to="." method="_on_map_pressed"]
+[connection signal="pressed" from="UI/HUD/PhoneButton" to="." method="_on_phone_pressed"]
+[connection signal="pressed" from="UI/HUD/BackpackButton" to="." method="_on_backpack_pressed"]
+[connection signal="pressed" from="UI/HUD/SprintButton" to="." method="_on_sprint_pressed"]

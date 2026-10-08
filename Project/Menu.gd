@@ -1,6 +1,5 @@
 extends Control
 
-const SAVE_PATH := "user://game_save.dat"
 const SETTINGS_PATH := "user://settings.cfg"
 const DEFAULT_VOLUME := 10
 
@@ -16,13 +15,12 @@ func _ready() -> void:
 	$MenuPanel/Buttons/NewGameButton.grab_focus()
 
 func _on_new_game_pressed() -> void:
-	var save_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if save_file:
-		save_file.store_string(JSON.stringify({"player_position": [0.0, 0.8, 17.0]}))
-	get_tree().change_scene_to_file("res://Project/Main.tscn")
+	GameState.start_new_game()
+	if GameState.save_game():
+		get_tree().change_scene_to_file("res://Project/Intro.tscn")
 
 func _on_continue_pressed() -> void:
-	if _has_valid_save():
+	if GameState.has_valid_save():
 		get_tree().change_scene_to_file("res://Project/Main.tscn")
 
 func _on_settings_pressed() -> void:
@@ -61,13 +59,4 @@ func _update_volume(value: float) -> void:
 	AudioServer.set_bus_volume_db(master_bus, linear_to_db(float(volume) / 10.0))
 
 func _has_valid_save() -> bool:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return false
-	var save_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if save_file == null:
-		return false
-	var raw_data := save_file.get_as_text()
-	if not raw_data.strip_edges().begins_with("{"):
-		return false
-	var data = JSON.parse_string(raw_data)
-	return data is Dictionary and data.has("player_position") and data.player_position.size() == 3
+	return GameState.has_valid_save()
