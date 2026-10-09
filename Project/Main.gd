@@ -10,6 +10,7 @@ const ITEMS_PATH := "res://Project/items.json"
 const INVENTORY_ITEM_SCRIPT := preload("res://Project/InventoryItem.gd")
 const BLUEPRINT_BOARD_SCRIPT := preload("res://Project/BlueprintBoard.gd")
 const INTERACTABLE_ITEM_SCRIPT := preload("res://Project/InteractableItem.gd")
+const ENEMY_SCRIPT := preload("res://Project/Enemy.gd")
 const BATTERY_DROP_SCRIPT := preload("res://Project/BatteryDrop.gd")
 
 @onready var player: CharacterBody3D = $Player
@@ -20,6 +21,8 @@ const BATTERY_DROP_SCRIPT := preload("res://Project/BatteryDrop.gd")
 @onready var status_message: Label = $UI/HUD/StatusMessage
 @onready var interact_prompt: Label = $UI/HUD/InteractPrompt
 @onready var mobile_controls: Control = $UI/HUD/MobileControls
+@onready var stamina_bar: ProgressBar = $UI/HUD/TopBar/Stamina
+@onready var health_bar: ProgressBar = $UI/HUD/TopBar/Health
 @onready var flashlight_light: SpotLight3D = $Player/Facing/Flashlight
 @onready var flashlight_charge_label: Label = $UI/HUD/FlashlightCharge
 var elapsed_time := 0.0
@@ -29,6 +32,7 @@ var flashlight_on := false
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_build_map()
+	_spawn_enemies()
 	_spawn_tutorial_items()
 	_load_game_state()
 	_apply_volume()
@@ -55,6 +59,9 @@ func _process(delta: float) -> void:
 	countdown_label.text = _format_time(elapsed_time)
 	_update_objective_ui()
 	_update_nearby_item()
+	stamina_bar.value = GameState.stamina
+	health_bar.value = GameState.health
+	$UI/HUD/TopBar/Stamina/StaminaText.text = "体力条  %s" % player.movement_state
 	if Input.is_action_just_pressed("interact"):
 		_try_pickup_item()
 	if Input.is_action_just_pressed("flashlight"):
@@ -370,16 +377,59 @@ func _apply_volume() -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(volume / 10.0))
 
 func _build_map() -> void:
-	# The route zigzags through four landmarks, with short search detours.
-	_add_road(Vector3(0, 0.12, 17), Vector3(-2, 0.12, 10), ROAD_MATERIAL, 2.8)
-	_add_road(Vector3(-2, 0.12, 10), Vector3(3, 0.12, 1), ROAD_MATERIAL, 2.8)
-	_add_road(Vector3(3, 0.12, 1), Vector3(-4, 0.12, -9), ROAD_MATERIAL, 2.8)
-	_add_road(Vector3(-4, 0.12, -9), Vector3(2, 0.12, -17), ROAD_MATERIAL, 2.8)
+	# The route now spans the planned large map with irregular base locations.
+	_add_road(Vector3(0, 0.12, 100), Vector3(-35, 0.12, 42), ROAD_MATERIAL, 4.0)
+	_add_road(Vector3(-35, 0.12, 42), Vector3(45, 0.12, -18), ROAD_MATERIAL, 4.0)
+	_add_road(Vector3(45, 0.12, -18), Vector3(-60, 0.12, -78), ROAD_MATERIAL, 4.0)
+	_add_road(Vector3(-60, 0.12, -78), Vector3(42, 0.12, -105), ROAD_MATERIAL, 4.0)
 
-	_add_landmark("庇护所", Vector3(0, 0.65, 17), SHELTER_MATERIAL, Vector3(3.2, 1.3, 2.5))
-	_add_landmark("基站 1", Vector3(-2, 0.65, 10), STATION_MATERIAL, Vector3(2.2, 1.3, 2.2))
-	_add_landmark("基站 2", Vector3(3, 0.65, 1), STATION_MATERIAL, Vector3(2.2, 1.3, 2.2))
-	_add_landmark("基站 3", Vector3(-4, 0.65, -9), STATION_MATERIAL, Vector3(2.2, 1.3, 2.2))
+	_add_landmark("庇护所", Vector3(0, 0.65, 100), SHELTER_MATERIAL, Vector3(6.0, 1.3, 4.5))
+	_add_landmark("基站 1", Vector3(-35, 0.65, 42), STATION_MATERIAL, Vector3(4.5, 1.3, 4.5))
+	_add_landmark("基站 2", Vector3(45, 0.65, -18), STATION_MATERIAL, Vector3(4.5, 1.3, 4.5))
+	_add_landmark("基站 3", Vector3(-60, 0.65, -78), STATION_MATERIAL, Vector3(4.5, 1.3, 4.5))
+
+	_spawn_large_map_houses()
+
+func _spawn_large_map_houses() -> void:
+	_add_house(Vector3(-20, 0.45, 76), Vector3(-12, 0.12, 70))
+	_add_house(Vector3(18, 0.45, 62), Vector3(12, 0.12, 58))
+	_add_house(Vector3(-66, 0.45, 34), Vector3(-54, 0.12, 32))
+	_add_house(Vector3(15, 0.45, 20), Vector3(28, 0.12, 10))
+	_add_house(Vector3(75, 0.45, -4), Vector3(62, 0.12, -10))
+	_add_house(Vector3(22, 0.45, -42), Vector3(35, 0.12, -35))
+	_add_house(Vector3(-90, 0.45, -52), Vector3(-75, 0.12, -60))
+	_add_house(Vector3(-22, 0.45, -100), Vector3(-35, 0.12, -92))
+	_add_house(Vector3(58, 0.45, -105), Vector3(48, 0.12, -100))
+
+func _spawn_enemies() -> void:
+	var stations := [Vector3(-35, 0.8, 42), Vector3(45, 0.8, -18), Vector3(-60, 0.8, -78)]
+	var random := RandomNumberGenerator.new()
+	random.seed = 20261009
+	for station in stations:
+		for index in range(4):
+			var offset := Vector3(random.randf_range(-14.0, 14.0), 0.0, random.randf_range(-12.0, 12.0))
+			_spawn_enemy(station + offset)
+
+func _spawn_enemy(position: Vector3) -> void:
+	var enemy: Node3D = ENEMY_SCRIPT.new()
+	var mesh := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.5
+	sphere.height = 1.0
+	mesh.mesh = sphere
+	mesh.material_override = _material(Color(0.015, 0.015, 0.015, 1))
+	enemy.add_child(mesh)
+	var alert := Label3D.new()
+	alert.name = "Alert"
+	alert.text = "!"
+	alert.position = Vector3(0, 1.2, 0)
+	alert.modulate = Color(1.0, 0.2, 0.1, 1)
+	alert.font_size = 40
+	alert.outline_size = 8
+	alert.visible = false
+	enemy.add_child(alert)
+	$MapGeometry.add_child(enemy)
+	enemy.setup(position)
 
 	_add_house(Vector3(-6, 0.45, 13), Vector3(-4, 0.12, 12))
 	_add_house(Vector3(4.5, 0.45, 7), Vector3(1, 0.12, 6))

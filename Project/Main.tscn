@@ -4,10 +4,10 @@
 [ext_resource type="Script" path="res://Project/Player.gd" id="2_player"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_floor"]
-size = Vector3(40, 0.2, 40)
+size = Vector3(320, 0.2, 240)
 
 [sub_resource type="BoxShape3D" id="BoxShape_floor"]
-size = Vector3(40, 0.2, 40)
+size = Vector3(320, 0.2, 240)
 
 [sub_resource type="CapsuleMesh" id="Capsule_player"]
 radius = 0.55
@@ -53,7 +53,7 @@ material_override = SubResource("FloorMaterial")
 shape = SubResource("BoxShape_floor")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 0.8, 17)
+position = Vector3(0, 0.8, 100)
 script = ExtResource("2_player")
 
 [node name="Mesh" type="MeshInstance3D" parent="Player"]

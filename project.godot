@@ -89,6 +89,14 @@ map={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":77)]
 }
+sprint={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194325)]
+}
+stealth={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194322)]
+}
 
 [physics]
 

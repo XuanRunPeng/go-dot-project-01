@@ -1,15 +1,32 @@
 extends CharacterBody3D
 
 @export var move_speed := 6.0
-@export var play_area := Vector2(19.0, 19.0)
+@export var walk_speed := 5.5
+@export var run_speed := 8.5
+@export var stealth_speed := 2.5
+@export var play_area := Vector2(155.0, 115.0)
+@export var stamina_drain := 18.0
+@export var stamina_recovery := 12.0
 @onready var camera: Camera3D = get_viewport().get_camera_3d()
 @onready var facing: Node3D = $Facing
+var movement_state := "行走"
 
 func _physics_process(_delta: float) -> void:
 	var keyboard_input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var movement := Vector3(keyboard_input.x, 0.0, keyboard_input.y)
-	velocity.x = movement.x * move_speed
-	velocity.z = movement.z * move_speed
+	var is_running := Input.is_action_pressed("sprint") and movement.length_squared() > 0.01 and GameState.stamina > 0.0
+	var is_stealth := Input.is_action_pressed("stealth") and not is_running
+	var current_speed := walk_speed
+	if is_running:
+		movement_state = "奔跑"
+		current_speed = run_speed
+		GameState.stamina = maxf(0.0, GameState.stamina - stamina_drain * _delta)
+	else:
+		movement_state = "潜行" if is_stealth else "行走"
+		current_speed = stealth_speed if is_stealth else walk_speed
+		GameState.stamina = minf(100.0, GameState.stamina + stamina_recovery * _delta)
+	velocity.x = movement.x * current_speed
+	velocity.z = movement.z * current_speed
 	velocity.y = 0.0
 	move_and_slide()
 	global_position.x = clampf(global_position.x, -play_area.x, play_area.x)
