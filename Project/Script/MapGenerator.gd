@@ -13,9 +13,15 @@ const MAP_SIZE := Vector2i(15000, 7500)
 const COLS := 938
 const ROWS := 469
 
-## 路网参数：每 ROAD_PERIOD 格一条 ROAD_WIDTH 格宽的道路
-const ROAD_PERIOD := 56
-const ROAD_WIDTH := 4
+## 路网参数（随机区间，避免方格感）
+const ROAD_WIDTH_MIN := 3    # 路宽区间（格）
+const ROAD_WIDTH_MAX := 5
+const ROAD_GAP_V_MIN := 30   # 竖向道路间距区间（格）
+const ROAD_GAP_V_MAX := 64
+const ROAD_GAP_H_MIN := 26   # 横向道路间距区间（格）
+const ROAD_GAP_H_MAX := 56
+const DEAD_END_CHANCE := 0.22 # 断头路概率（不贯穿全图）
+const DIAGONAL_CHANCE := 0.7  # 斜向主干道概率
 
 # ---- 图集来源 id ----
 const SRC_DUNGEON := 0   # dungeon_tiles.png：石块/沥青/木箱
@@ -78,6 +84,7 @@ const LAMP_SIZE := Vector2i(1, 3)
 var regenerate_action: Callable = generate_map
 
 var rng := RandomNumberGenerator.new()
+var road_grid := {}  # Vector2i -> true，先开凿路网再统一绘制
 var wall_cells := {}  # Vector2i -> true，记录墙体格，避免路灯等道具重叠
 
 @onready var ground: TileMapLayer = $Ground
@@ -149,6 +156,8 @@ func _cell_has_pixels(img: Image, cx: int, cy: int) -> bool:
 # ------------------------------------------------------------------
 
 func _generate() -> void:
+	road_grid.clear()
+	_carve_roads()
 	_paint_ground()
 	_paint_border_ruins()
 	_paint_city_blocks()
@@ -158,7 +167,78 @@ func _in_bounds(c: Vector2i) -> bool:
 	return c.x >= 0 and c.y >= 0 and c.x < COLS and c.y < ROWS
 
 func _is_road(c: Vector2i) -> bool:
-	return (c.x % ROAD_PERIOD) < ROAD_WIDTH or (c.y % ROAD_PERIOD) < ROAD_WIDTH
+	return road_grid.has(c)
+
+# ------------------------------------------------------------------
+# 路网开凿：随机间距/宽度的道路 + 断头路 + 蜿蜒斜向主干道
+# ------------------------------------------------------------------
+
+func _carve_vertical(x: int, w: int, y0: int, y1: int) -> void:
+	for yy in range(y0, y1):
+		for xx in range(x, x + w):
+			var c := Vector2i(xx, yy)
+			if _in_bounds(c):
+				road_grid[c] = true
+
+func _carve_horizontal(y: int, w: int, x0: int, x1: int) -> void:
+	for xx in range(x0, x1):
+		for yy in range(y, y + w):
+			var c := Vector2i(xx, yy)
+			if _in_bounds(c):
+				road_grid[c] = true
+
+## 蜿蜒的斜向主干道：沿对角线随机游走开凿
+func _carve_diagonal(flip_x: bool) -> void:
+	var thickness := rng.randi_range(2, 3)
+	var steps := int((COLS + ROWS) * 0.75)
+	var dx := COLS / float(steps)
+	var dy := ROWS / float(steps)
+	var x := 0.0
+	var y := 0.0
+	var wander := 0.0
+	for i in steps:
+		wander = wander * 0.96 + rng.randf_range(-1.0, 1.0) * 2.6
+		var px := int(x + wander)
+		if flip_x:
+			px = COLS - px
+		var py := int(y + wander * 0.8)
+		for yy in range(-thickness, thickness + 1):
+			for xx in range(-thickness, thickness + 1):
+				if xx * xx + yy * yy <= thickness * thickness + 1:
+					var c := Vector2i(px + xx, py + yy)
+					if _in_bounds(c):
+						road_grid[c] = true
+		x += dx
+		y += dy
+
+func _carve_roads() -> void:
+	# 竖向道路
+	var x := rng.randi_range(-8, 8)
+	while x < COLS:
+		var w := rng.randi_range(ROAD_WIDTH_MIN, ROAD_WIDTH_MAX)
+		if rng.randf() < DEAD_END_CHANCE:
+			var y0 := rng.randi_range(0, int(ROWS / 3.0))
+			var y1 := rng.randi_range(int(ROWS / 3.0) * 2, ROWS)
+			_carve_vertical(x, w, y0, y1)
+		else:
+			_carve_vertical(x, w, 0, ROWS)
+		x += w + rng.randi_range(ROAD_GAP_V_MIN, ROAD_GAP_V_MAX)
+	# 横向道路
+	var y := rng.randi_range(-8, 8)
+	while y < ROWS:
+		var w := rng.randi_range(ROAD_WIDTH_MIN, ROAD_WIDTH_MAX)
+		if rng.randf() < DEAD_END_CHANCE:
+			var x0 := rng.randi_range(0, int(COLS / 3.0))
+			var x1 := rng.randi_range(int(COLS / 3.0) * 2, COLS)
+			_carve_horizontal(y, w, x0, x1)
+		else:
+			_carve_horizontal(y, w, 0, COLS)
+		y += w + rng.randi_range(ROAD_GAP_H_MIN, ROAD_GAP_H_MAX)
+	# 斜向主干道
+	if rng.randf() < DIAGONAL_CHANCE:
+		_carve_diagonal(false)
+	if rng.randf() < 0.5:
+		_carve_diagonal(true)
 
 func _is_sidewalk(c: Vector2i) -> bool:
 	if _is_road(c):
@@ -231,44 +311,49 @@ func _paint_border_ruins() -> void:
 			if rng.randf() > 0.15:
 				_set_wall(c)
 
-## 城市街区：以路网划分街区，按概率生成建筑群 / 瓦砾场 / 荒废空地
+## 建筑与地块随机散布：避开路网、间距自然，避免方格街区感
 func _paint_city_blocks() -> void:
-	var block_size := ROAD_PERIOD - ROAD_WIDTH
-	var gy := ROAD_WIDTH
-	while gy < ROWS - 2:
-		var gx := ROAD_WIDTH
-		while gx < COLS - 2:
-			var bw := mini(block_size, COLS - 2 - gx)
-			var bh := mini(block_size, ROWS - 2 - gy)
-			if bw > 6 and bh > 6:
-				match rng.randi_range(0, 9):
-					0, 1, 2, 3, 4, 5:
-						_paint_block_buildings(Rect2i(gx, gy, bw, bh))
-					6, 7:
-						_paint_rubble_lot(Rect2i(gx, gy, bw, bh))
-					_:
-						_paint_overgrown_lot(Rect2i(gx, gy, bw, bh))
-			gx += ROAD_PERIOD
-		gy += ROAD_PERIOD
-
-func _paint_block_buildings(block: Rect2i) -> void:
 	var placed: Array[Rect2i] = []
-	var attempts := rng.randi_range(1, 2)
-	for i in attempts:
-		var bw := rng.randi_range(8, mini(26, block.size.x - 2))
-		var bh := rng.randi_range(6, mini(16, block.size.y - 2))
-		var bx := block.position.x + rng.randi_range(0, block.size.x - bw)
-		var by := block.position.y + rng.randi_range(0, block.size.y - bh)
+	# 建筑废墟
+	var building_tries := int(COLS * ROWS / 260.0)
+	for i in building_tries:
+		var bw := rng.randi_range(8, 24)
+		var bh := rng.randi_range(6, 16)
+		var bx := rng.randi_range(2, COLS - bw - 3)
+		var by := rng.randi_range(2, ROWS - bh - 3)
 		var rect := Rect2i(bx, by, bw, bh)
-		var overlaps := false
-		for r in placed:
-			if r.intersects(rect.grow(1)):
-				overlaps = true
-				break
-		if overlaps:
+		if _rect_touches_road(rect.grow(2)) or _overlaps_any(placed, rect.grow(2)):
 			continue
 		placed.append(rect)
 		_paint_building(rect)
+	# 瓦砾场与荒废空地
+	var lot_tries := int(COLS * ROWS / 900.0)
+	for i in lot_tries:
+		var lw := rng.randi_range(10, 30)
+		var lh := rng.randi_range(8, 20)
+		var lx := rng.randi_range(2, COLS - lw - 3)
+		var ly := rng.randi_range(2, ROWS - lh - 3)
+		var rect := Rect2i(lx, ly, lw, lh)
+		if _rect_touches_road(rect.grow(2)) or _overlaps_any(placed, rect.grow(2)):
+			continue
+		placed.append(rect)
+		if rng.randf() < 0.5:
+			_paint_rubble_lot(rect)
+		else:
+			_paint_overgrown_lot(rect)
+
+func _rect_touches_road(rect: Rect2i) -> bool:
+	for yy in range(rect.position.y, rect.end.y):
+		for xx in range(rect.position.x, rect.end.x):
+			if road_grid.has(Vector2i(xx, yy)):
+				return true
+	return false
+
+func _overlaps_any(placed: Array[Rect2i], rect: Rect2i) -> bool:
+	for r in placed:
+		if r.intersects(rect):
+			return true
+	return false
 
 ## 单栋废墟建筑：残缺围墙 + 随机塌口 + 门洞，内部荒废地板与杂物
 func _paint_building(rect: Rect2i) -> void:
@@ -352,33 +437,20 @@ func _paint_overgrown_lot(block: Rect2i) -> void:
 			elif p < 0.021:
 				props.set_cell(c, SRC_DUNGEON, PROP_PLANKS)
 
-## 沿路网布置路灯（1x3 格道具）
+## 沿道路边缘随机布置路灯（1x3 格道具），粗网格控制密度
 func _place_street_lamps() -> void:
-	var step := 14
-	# 竖向道路两侧
-	var rx := 0
-	while rx < COLS:
-		var ly := ROAD_WIDTH + 6
-		while ly < ROWS - ROAD_WIDTH - 6:
-			for lx in [rx + ROAD_WIDTH + 1, rx - 2]:
-				var c := Vector2i(lx, ly)
-				if _in_bounds(c) and not _is_road(c) and not wall_cells.has(c) \
-						and rng.randf() < 0.8:
-					props.set_cell(c, SRC_OBJECT, LAMP_ATLAS)
-			ly += step
-		rx += ROAD_PERIOD
-	# 横向道路两侧
-	var ry := 0
-	while ry < ROWS:
-		var lx := ROAD_WIDTH + 6
-		while lx < COLS - ROAD_WIDTH - 6:
-			for ly2 in [ry + ROAD_WIDTH + 1, ry - 2]:
-				var c := Vector2i(lx, ly2)
-				if _in_bounds(c) and not _is_road(c) and not wall_cells.has(c) \
-						and rng.randf() < 0.8:
-					props.set_cell(c, SRC_OBJECT, LAMP_ATLAS)
-			lx += step
-		ry += ROAD_PERIOD
+	var lamp_zones := {}
+	for c: Vector2i in road_grid:
+		for d in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+			var n: Vector2i = c + d
+			if not _in_bounds(n) or road_grid.has(n) or wall_cells.has(n):
+				continue
+			var zone := Vector2i(floori(n.x / 10.0), floori(n.y / 10.0))
+			if lamp_zones.has(zone):
+				continue
+			if rng.randf() < 0.03:
+				lamp_zones[zone] = true
+				props.set_cell(n, SRC_OBJECT, LAMP_ATLAS)
 
 ## 在路面上散落废弃物
 func _place_road_debris(c: Vector2i) -> void:

@@ -1,8 +1,8 @@
-[gd_resource type="TileSet" format=3 uid="uid://6j3tuxijyhs1"]
+[gd_resource type="TileSet" format=3]
 
-[ext_resource type="Texture2D" uid="uid://c53hynkamfix2" path="res://Project/Tile/dungeon_tiles.png" id="1_w4u6h"]
-[ext_resource type="Texture2D" uid="uid://caayd8eibsmew" path="res://Project/Tile/Tiles-SandstoneDungeons.png" id="2_rnmou"]
-[ext_resource type="Texture2D" uid="uid://cgdchjbher7d4" path="res://Project/Tile/Object.png" id="3_ul4vp"]
+[ext_resource type="Texture2D" path="res://Project/Tile/dungeon_tiles.png" id="1_w4u6h"]
+[ext_resource type="Texture2D" path="res://Project/Tile/Tiles-SandstoneDungeons.png" id="2_rnmou"]
+[ext_resource type="Texture2D" path="res://Project/Tile/Object.png" id="3_ul4vp"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vs605"]
 texture = ExtResource("1_w4u6h")

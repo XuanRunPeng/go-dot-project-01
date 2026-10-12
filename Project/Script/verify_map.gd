@@ -10,13 +10,23 @@ func _initialize() -> void:
 	var rect := ground.get_used_rect()
 	print("Ground 覆盖范围: ", rect, " 尺寸: ", rect.size, "（应约 938x469）")
 
-	# 采样校验：路面 / 人行道 / 边界墙
-	var road := Vector2i(57, 100)   # x=57 -> 57%56=1 < 4 应为路面(源0)
-	var road2 := Vector2i(100, 57)  # 横向路
-	var walk := Vector2i(60, 100)   # 紧邻路
-	print("路面格 (57,100) source=", ground.get_cell_source_id(road), " atlas=", ground.get_cell_atlas_coords(road))
-	print("路面格 (100,57) source=", ground.get_cell_source_id(road2), " atlas=", ground.get_cell_atlas_coords(road2))
-	print("人行道 (60,100) source=", ground.get_cell_source_id(walk), " atlas=", ground.get_cell_atlas_coords(walk))
+	# 路网随机性校验：第 200 行路面起点列与间距（不应等距）
+	var road_cols: Array[int] = []
+	var prev := -10
+	for x in 938:
+		if ground.get_cell_source_id(Vector2i(x, 200)) == 0:
+			if x > prev + 1:
+				road_cols.append(x)
+			prev = x
+	var gaps: Array[int] = []
+	for i in range(1, road_cols.size()):
+		gaps.append(road_cols[i] - road_cols[i - 1])
+	var all_same := true
+	for g in gaps:
+		if g != gaps[0]:
+			all_same = false
+			break
+	print("第200行道路起点列数: ", road_cols.size(), " 间距: ", gaps, " 等距? ", all_same, "（应为 false）")
 	print("边界 (0,200) source=", ground.get_cell_source_id(Vector2i(0, 200)), " atlas=", ground.get_cell_atlas_coords(Vector2i(0, 200)))
 
 	# Props 层统计
