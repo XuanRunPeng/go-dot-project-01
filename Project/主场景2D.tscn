@@ -1,0 +1,66 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Project/主场景2D.gd" id="1"]
+[ext_resource type="Script" path="res://Project/玩家2D.gd" id="2"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="3"]
+
+[sub_resource type="CircleShape2D" id="PlayerShape"]
+radius = 10.0
+
+[sub_resource type="CircleShape2D" id="ItemShape"]
+radius = 18.0
+
+[node name="Main2D" type="Node2D"]
+script = ExtResource("1")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(0, 100)
+script = ExtResource("2")
+
+[node name="Sprite" type="Sprite2D" parent="Player"]
+texture = ExtResource("3")
+scale = Vector2(0.08, 0.08)
+modulate = Color(0.2, 0.58, 0.86, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("PlayerShape")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(0, 100)
+position_smoothing_enabled = true
+position_smoothing_speed = 6.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Health" type="ProgressBar" parent="UI"]
+offset_left = 32.0
+offset_top = 28.0
+offset_right = 320.0
+offset_bottom = 54.0
+value = 100.0
+show_percentage = false
+
+[node name="Stamina" type="ProgressBar" parent="UI"]
+offset_left = 32.0
+offset_top = 62.0
+offset_right = 320.0
+offset_bottom = 88.0
+value = 100.0
+show_percentage = false
+
+[node name="Prompt" type="Label" parent="UI"]
+offset_left = 1050.0
+offset_top = 760.0
+offset_right = 1550.0
+offset_bottom = 810.0
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="UI"]
+offset_left = 32.0
+offset_top = 105.0
+offset_right = 700.0
+offset_bottom = 140.0
+text = "WASD 移动  |  Shift 奔跑  |  Ctrl 潜行  |  E 拾取"

@@ -1,3 +1,8 @@
+# 旧版 3D 敌人控制器：保留作为回退参考。
+# State 定义 3D 敌人的游荡、警戒、追击和攻击阶段。
+# setup 设置出生点；_ready 查找玩家和警戒标签；_physics_process 驱动 AI。
+# _get_detection_radius 处理奔跑和潜行的感知差异。
+# _wander、_chase、_attack 分别执行状态行为，_show_alert 显示感叹号。
 extends Node3D
 
 enum State { WANDER, ALERT, CHASE, ATTACK }

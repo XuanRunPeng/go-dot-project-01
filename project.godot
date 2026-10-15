@@ -11,13 +11,13 @@ config_version=5
 [application]
 
 config/name="GoDotProject_01"
-run/main_scene="res://Project/Menu.tscn"
+run/main_scene="res://Project/菜单.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GameState="*res://Project/GameState.gd"
+GameState="*res://Project/游戏状态.gd"
 
 [display]
 

@@ -1,3 +1,5 @@
+# 旧版电池掉落组件：保留给旧场景使用。
+# _can_drop_data 只接受电池；_drop_data 发出信号，由主场景增加手电电量。
 extends PanelContainer
 
 signal battery_dropped

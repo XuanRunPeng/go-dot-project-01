@@ -1,3 +1,7 @@
+# 旧版 3D 玩家控制器：保留作为回退参考。
+# 普通、奔跑和潜行速度对应三种玩家移动状态。
+# _physics_process 读取 WASD、处理体力、移动和边界限制。
+# _update_facing 优先使用手柄方向，没有手柄输入时使用鼠标世界坐标。
 extends CharacterBody3D
 
 @export var move_speed := 6.0

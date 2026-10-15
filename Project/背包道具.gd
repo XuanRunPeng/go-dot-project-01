@@ -1,3 +1,7 @@
+# 背包道具按钮：显示图标、名称和整数数量，并提供拖放数据。
+# item_data：保存当前按钮对应的道具数据库记录。
+# setup：设置按钮文本、图标和悬浮提示；数量统一转换为整数显示。
+# _get_drag_data：创建拖动预览，并向图纸面板传递 item 字典。
 extends Button
 
 var item_data: Dictionary

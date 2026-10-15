@@ -1,3 +1,6 @@
+# 旧版图纸面板：负责建造栏的拖放交互。
+# _can_drop_data 验证拖入数据是否包含道具；_drop_data 创建图纸槽位文本。
+# clear_slots 清除当前图纸上的所有材料。
 extends PanelContainer
 
 @onready var slots: GridContainer = $Margin/Content/Slots

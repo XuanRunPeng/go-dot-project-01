@@ -1,3 +1,5 @@
+# 旧版 3D 道具交互组件：保留给旧场景使用。
+# setup 注册道具编号、名称和数量；pickup 防止重复拾取并推进任务。
 extends Area3D
 
 @export var item_id := ""

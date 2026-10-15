@@ -1,3 +1,10 @@
+# 全局游戏状态：管理存档、任务、背包、属性和关键进度。
+# SAVE_PATH 和 SAVE_VERSION：定义本地存档地址及存档格式版本。
+# Task：定义从苏醒、拾取武器到基站探索的任务阶段。
+# player_position、health、stamina：玩家基础状态；inventory：整数道具数量。
+# equipped_item、key_items：装备与关键道具；stations、searched_houses：探索进度。
+# collected_items：已拾取道具；elapsed_time：游戏时间；flashlight_*：手电状态。
+# start_new_game：重置状态；add_item：增加物品；save_game/load_game：读写存档。
 extends Node
 
 const SAVE_PATH := "user://game_save.dat"
@@ -30,6 +37,7 @@ var flashlight_on := false
 var flashlight_charge := 0.0
 
 func start_new_game() -> void:
+	# 创建新游戏时重置所有持久化状态。
 	task = Task.WAKE_UP
 	player_position = Vector3(0.0, 0.8, 17.0)
 	health = 100.0
@@ -45,19 +53,23 @@ func start_new_game() -> void:
 	flashlight_charge = 0.0
 
 func set_task(next_task: Task) -> void:
+	# 任务只允许向前推进。
 	if next_task > task:
 		task = next_task
 
 func add_item(item_id: String, amount := 1) -> void:
+	# 以整数数量增加背包物品，并处理关键道具任务。
 	inventory[item_id] = int(inventory.get(item_id, 0)) + amount
 	if item_id == "map":
 		key_items["map"] = true
 		set_task(Task.REACH_FIRST_STATION)
 
 func has_item(item_id: String, amount := 1) -> bool:
+	# 检查背包是否拥有指定数量的物品。
 	return int(inventory.get(item_id, 0)) >= amount
 
 func save_game() -> bool:
+	# 将当前状态序列化保存到本地 JSON 文件。
 	var save_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if save_file == null:
 		return false
@@ -80,6 +92,7 @@ func save_game() -> bool:
 	return true
 
 func load_game() -> bool:
+	# 读取存档，并兼容缺少新字段的旧版本。
 	if not FileAccess.file_exists(SAVE_PATH):
 		return false
 	var save_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
@@ -110,4 +123,5 @@ func load_game() -> bool:
 	return true
 
 func has_valid_save() -> bool:
+	# 判断本地是否存在有效存档。
 	return load_game()

@@ -1,3 +1,9 @@
+# 主菜单：提供新游戏、继续游戏、设置和退出入口。
+# SETTINGS_PATH：保存音量配置；DEFAULT_VOLUME：首次运行的默认音量值。
+# _ready：初始化存档按钮和音量界面；新游戏与继续游戏进入不同流程。
+# _on_settings_pressed/_on_close_settings_pressed：显示或隐藏设置面板。
+# _on_volume_changed：更新音量并写入配置；左右按钮复用滑块限制为 1 到 10。
+# _has_valid_save：检查 GameState 存档，决定继续按钮是否可用。
 extends Control
 
 const SETTINGS_PATH := "user://settings.cfg"
@@ -17,11 +23,11 @@ func _ready() -> void:
 func _on_new_game_pressed() -> void:
 	GameState.start_new_game()
 	if GameState.save_game():
-		get_tree().change_scene_to_file("res://Project/Intro.tscn")
+		get_tree().change_scene_to_file("res://Project/开场介绍.tscn")
 
 func _on_continue_pressed() -> void:
 	if GameState.has_valid_save():
-		get_tree().change_scene_to_file("res://Project/Main.tscn")
+		get_tree().change_scene_to_file("res://Project/主场景2D.tscn")
 
 func _on_settings_pressed() -> void:
 	settings_panel.visible = true

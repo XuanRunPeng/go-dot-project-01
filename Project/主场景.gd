@@ -1,3 +1,7 @@
+# 旧版 3D 主场景：保留作为回退参考，当前入口使用 2D 主场景。
+# 地图常量定义道路、基站、庇护所和房屋的 3D 原型颜色。
+# _ready 初始化世界、UI、存档、背包和手电；_process 更新时间、状态和输入。
+# 其余函数分别负责地图、HUD、背包、图纸、手电、暂停、拾取和存档。
 extends Node3D
 
 const ROAD_MATERIAL := Color(0.28, 0.22, 0.15, 1)
@@ -6,12 +10,12 @@ const STATION_MATERIAL := Color(0.72, 0.3, 0.18, 1)
 const SHELTER_MATERIAL := Color(0.22, 0.5, 0.38, 1)
 const HOUSE_MATERIAL := Color(0.38, 0.3, 0.22, 1)
 const SETTINGS_PATH := "user://settings.cfg"
-const ITEMS_PATH := "res://Project/items.json"
-const INVENTORY_ITEM_SCRIPT := preload("res://Project/InventoryItem.gd")
-const BLUEPRINT_BOARD_SCRIPT := preload("res://Project/BlueprintBoard.gd")
-const INTERACTABLE_ITEM_SCRIPT := preload("res://Project/InteractableItem.gd")
-const ENEMY_SCRIPT := preload("res://Project/Enemy.gd")
-const BATTERY_DROP_SCRIPT := preload("res://Project/BatteryDrop.gd")
+const ITEMS_PATH := "res://Project/道具数据库.json"
+const INVENTORY_ITEM_SCRIPT := preload("res://Project/背包道具.gd")
+const BLUEPRINT_BOARD_SCRIPT := preload("res://Project/图纸面板.gd")
+const INTERACTABLE_ITEM_SCRIPT := preload("res://Project/可交互道具.gd")
+const ENEMY_SCRIPT := preload("res://Project/敌人.gd")
+const BATTERY_DROP_SCRIPT := preload("res://Project/电池掉落.gd")
 
 @onready var player: CharacterBody3D = $Player
 @onready var pause_panel: PanelContainer = $UI/PausePanel
@@ -354,11 +358,11 @@ func _on_continue_pressed() -> void:
 func _on_save_and_exit_pressed() -> void:
 	_save_game()
 	get_tree().paused = false
-	get_tree().change_scene_to_file("res://Project/Menu.tscn")
+	get_tree().change_scene_to_file("res://Project/菜单.tscn")
 
 func _on_menu_pressed() -> void:
 	get_tree().paused = false
-	get_tree().change_scene_to_file("res://Project/Menu.tscn")
+	get_tree().change_scene_to_file("res://Project/菜单.tscn")
 
 func _save_game() -> void:
 	GameState.player_position = player.global_position
