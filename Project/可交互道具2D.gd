@@ -13,20 +13,26 @@ func setup(id: String, display_name: String) -> void:
 	# 设置道具标识和显示名称，并创建显示节点。
 	item_id = id
 	item_name = display_name
-	add_to_group("interactable_items_2d")
 	var sprite := Sprite2D.new()
-	sprite.name = "Sprite"
-	sprite.texture = load("res://icon.svg")
-	sprite.scale = Vector2(0.045, 0.045)
+	sprite.name = "道具贴图"
+	# 根据道具编号选择对应的像素图标，未知道具使用地图图标兜底。
+	var textures := {
+		"baseball_bat": "res://art/pixel/正式PNG/棒球棍.png",
+		"crowbar": "res://art/pixel/正式PNG/撬棍.png",
+		"battery": "res://art/pixel/正式PNG/电池.png",
+		"map": "res://art/pixel/正式PNG/地图.png",
+	}
+	sprite.texture = load(textures.get(id, "res://art/pixel/正式PNG/地图.png"))
+	sprite.scale = Vector2(0.7, 0.7)
 	add_child(sprite)
 	var highlight := Polygon2D.new()
-	highlight.name = "Highlight"
+	highlight.name = "交互高亮"
 	highlight.polygon = PackedVector2Array([Vector2(-18, -18), Vector2(18, -18), Vector2(18, 18), Vector2(-18, 18)])
 	highlight.color = Color(1, 0.85, 0.2, 0.35)
 	highlight.z_index = -1
 	add_child(highlight)
 	var label := Label.new()
-	label.name = "Name"
+	label.name = "道具名称"
 	label.text = display_name
 	label.position = Vector2(-45, -42)
 	label.visible = false
@@ -36,13 +42,16 @@ func setup(id: String, display_name: String) -> void:
 	collision_shape.radius = 18.0
 	collision.shape = collision_shape
 	add_child(collision)
+	monitoring = false
+	monitorable = false
+	add_to_group("interactable_items_2d")
 
 func set_highlight(value: bool) -> void:
 	# 玩家进入范围后显示黄色轮廓和名称。
 	highlighted = value
-	$Sprite.modulate = Color(1.0, 0.9, 0.25, 1.0) if value else Color(1, 1, 1, 1)
-	$Highlight.visible = value
-	$Name.visible = value
+	$道具贴图.modulate = Color(1.0, 0.9, 0.25, 1.0) if value else Color(1, 1, 1, 1)
+	$交互高亮.visible = value
+	$道具名称.visible = value
 
 func pickup() -> void:
 	# 将道具写入全局背包，并记录为已收集。

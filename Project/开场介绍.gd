@@ -13,9 +13,9 @@ const STORY_LINES := [
 	"现在，先离开实验室。活下去。"
 ]
 
-@onready var story_container: VBoxContainer = $Story
-@onready var prompt_label: Label = $Prompt
-@onready var skip_button: Button = $SkipButton
+@onready var story_container: VBoxContainer = $剧情文本
+@onready var prompt_label: Label = $继续提示
+@onready var skip_button: Button = $跳过按钮
 var line_index := 0
 var can_continue := false
 var is_transitioning := false

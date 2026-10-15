@@ -9,16 +9,16 @@ extends Control
 const SETTINGS_PATH := "user://settings.cfg"
 const DEFAULT_VOLUME := 10
 
-@onready var continue_button: Button = $MenuPanel/Buttons/ContinueButton
-@onready var settings_panel: PanelContainer = $SettingsPanel
-@onready var volume_slider: HSlider = $SettingsPanel/SettingsBox/VolumeRow/VolumeSlider
-@onready var volume_value: Label = $SettingsPanel/SettingsBox/VolumeRow/VolumeValue
+@onready var continue_button: Button = $菜单面板/按钮组/继续游戏按钮
+@onready var settings_panel: PanelContainer = $设置面板
+@onready var volume_slider: HSlider = $设置面板/设置内容/音量行/音量滑块
+@onready var volume_value: Label = $设置面板/设置内容/音量行/音量数值
 
 func _ready() -> void:
 	continue_button.disabled = not _has_valid_save()
 	volume_slider.value = _load_volume()
 	_update_volume(volume_slider.value)
-	$MenuPanel/Buttons/NewGameButton.grab_focus()
+	$菜单面板/按钮组/新游戏按钮.grab_focus()
 
 func _on_new_game_pressed() -> void:
 	GameState.start_new_game()
@@ -31,11 +31,11 @@ func _on_continue_pressed() -> void:
 
 func _on_settings_pressed() -> void:
 	settings_panel.visible = true
-	$SettingsPanel/SettingsBox/CloseButton.grab_focus()
+	$设置面板/设置内容/返回按钮.grab_focus()
 
 func _on_close_settings_pressed() -> void:
 	settings_panel.visible = false
-	$MenuPanel/Buttons/SettingsButton.grab_focus()
+	$菜单面板/按钮组/设置按钮.grab_focus()
 
 func _on_volume_changed(value: float) -> void:
 	_update_volume(value)

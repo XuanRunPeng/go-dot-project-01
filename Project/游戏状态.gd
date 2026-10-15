@@ -23,7 +23,7 @@ enum Task {
 }
 
 var task: Task = Task.WAKE_UP
-var player_position := Vector3(0.0, 0.8, 17.0)
+var player_position := Vector3(0.0, 0.8, 100.0)
 var health := 100.0
 var stamina := 100.0
 var inventory: Dictionary = {}
@@ -39,7 +39,7 @@ var flashlight_charge := 0.0
 func start_new_game() -> void:
 	# 创建新游戏时重置所有持久化状态。
 	task = Task.WAKE_UP
-	player_position = Vector3(0.0, 0.8, 17.0)
+	player_position = Vector3(0.0, 0.8, 100.0)
 	health = 100.0
 	stamina = 100.0
 	inventory = {}
@@ -85,9 +85,9 @@ func save_game() -> bool:
 		"stations": stations,
 		"searched_houses": searched_houses,
 		"collected_items": collected_items,
-		"elapsed_time": elapsed_time
-		,"flashlight_on": flashlight_on
-		,"flashlight_charge": flashlight_charge
+		"elapsed_time": elapsed_time,
+		"flashlight_on": flashlight_on,
+		"flashlight_charge": flashlight_charge
 	}))
 	return true
 
@@ -104,14 +104,18 @@ func load_game() -> bool:
 	var data = JSON.parse_string(raw_data)
 	if not data is Dictionary or not data.has("player_position"):
 		return false
-	var position_data: Array = data.player_position
-	if position_data.size() != 3:
+	var position_data = data.player_position
+	if not position_data is Array or position_data.size() != 3:
 		return false
-	player_position = Vector3(position_data[0], position_data[1], position_data[2])
-	task = int(data.get("task", Task.WAKE_UP)) as Task
+	var loaded_task := int(data.get("task", Task.WAKE_UP))
+	var loaded_inventory = data.get("inventory", {})
+	if loaded_task < Task.WAKE_UP or loaded_task > Task.SURVIVAL_LOOP or not loaded_inventory is Dictionary:
+		return false
+	player_position = Vector3(float(position_data[0]), float(position_data[1]), float(position_data[2]))
+	task = loaded_task as Task
 	health = float(data.get("health", 100.0))
 	stamina = float(data.get("stamina", 100.0))
-	inventory = data.get("inventory", {})
+	inventory = loaded_inventory
 	equipped_item = str(data.get("equipped_item", ""))
 	key_items = data.get("key_items", {})
 	stations = data.get("stations", {"station_1": false, "station_2": false, "station_3": false})

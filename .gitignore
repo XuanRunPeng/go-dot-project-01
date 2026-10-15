@@ -4,3 +4,7 @@
 
 # Godot import temp files
 ~*
+
+# Python cache files
+__pycache__/
+*.pyc

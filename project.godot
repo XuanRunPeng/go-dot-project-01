@@ -21,8 +21,8 @@ GameState="*res://Project/游戏状态.gd"
 
 [display]
 
-window/size/viewport_width=2560
-window/size/viewport_height=1440
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
@@ -108,6 +108,8 @@ stealth={
 3d/physics_engine="Jolt Physics"
 
 [rendering]
+
+textures/default_filters/texture_filter=0
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"

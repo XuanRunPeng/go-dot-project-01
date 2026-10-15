@@ -6,9 +6,9 @@
 # _physics_process：读取输入、计算速度、移动角色并限制地图边界。
 extends CharacterBody2D
 
-@export var walk_speed := 5.5
-@export var run_speed := 8.5
-@export var stealth_speed := 2.5
+@export var walk_speed := 90.0
+@export var run_speed := 145.0
+@export var stealth_speed := 42.0
 @export var play_area := Vector2(155.0, 115.0)
 @export var stamina_drain := 18.0
 @export var stamina_recovery := 12.0
