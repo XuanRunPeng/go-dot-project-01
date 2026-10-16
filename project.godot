@@ -11,13 +11,13 @@ config_version=5
 [application]
 
 config/name="GoDotProject_01"
-run/main_scene="res://Project/菜单.tscn"
+run/main_scene="res://Project/Scenes/UI/菜单.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
-GameState="*res://Project/游戏状态.gd"
+GameState="*res://Project/Scripts/Core/游戏状态.gd"
 
 [display]
 
@@ -25,6 +25,7 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/stretch/scale_mode="integer"
 
 [editor]
 
@@ -103,12 +104,11 @@ stealth={
 ]
 }
 
-[physics]
-
-3d/physics_engine="Jolt Physics"
-
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
 textures/default_filters/texture_filter=0

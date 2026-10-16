@@ -3,7 +3,7 @@ extends SceneTree
 ## 实例化 Map.tscn -> 调用 MapGenerator.generate_map() ->
 ## TileSet 存为 MapTiles.tres -> 瓦片数据烘焙进 Map.tscn
 ## 用法：
-##   godot --headless --path <项目根目录> --script res://Project/Scence/bake_map.gd
+##   godot --headless --path <项目根目录> --script res://Project/Script/bake_map.gd
 
 const MAP_SCENE := "res://Project/Scence/Map.tscn"
 const TILESET_PATH := "res://Project/Scence/MapTiles.tres"

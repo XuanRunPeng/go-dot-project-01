@@ -121,8 +121,7 @@ func _build_tile_set() -> TileSet:
 	_add_atlas(ts, SRC_OBJECT, "res://Project/Tile/Object.png", {
 		Vector2i(9, 9): true, Vector2i(9, 10): true, Vector2i(9, 11): true,
 	})
-	var obj_src: TileSetAtlasSource = ts.get_source(SRC_OBJECT)
-	obj_src.create_tile(LAMP_ATLAS, LAMP_SIZE)
+	# 图集扫描已经创建可用瓦片，不再重复创建多格路灯区域。
 	return ts
 
 func _add_atlas(ts: TileSet, id: int, path: String, exclude: Dictionary) -> void:
@@ -450,7 +449,9 @@ func _place_street_lamps() -> void:
 				continue
 			if rng.randf() < 0.03:
 				lamp_zones[zone] = true
-				props.set_cell(n, SRC_OBJECT, LAMP_ATLAS)
+				var object_source: TileSetAtlasSource = props.tile_set.get_source(SRC_OBJECT)
+				if object_source != null and object_source.has_tile(LAMP_ATLAS):
+					props.set_cell(n, SRC_OBJECT, LAMP_ATLAS)
 
 ## 在路面上散落废弃物
 func _place_road_debris(c: Vector2i) -> void:
