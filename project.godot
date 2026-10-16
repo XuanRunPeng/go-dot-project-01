@@ -109,7 +109,6 @@ stealth={
 
 [rendering]
 
-textures/default_filters/texture_filter=0
-
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
+textures/default_filters/texture_filter=0
